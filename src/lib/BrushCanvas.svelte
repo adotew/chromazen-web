@@ -3,8 +3,8 @@
   import { createBrushRenderer, type BrushRenderer } from './brushRenderer'
 
   const BRUSH_SIZE = 112
-  const DRAW_FLOATS_PER_STAMP = 4
-  const STATE_FLOATS_PER_STAMP = 5
+  const DRAW_FLOATS_PER_STAMP = 5
+  const STATE_FLOATS_PER_STAMP = 6
   const FADE_DURATION = 1200
   const MAX_STAMPS = 2048
 
@@ -26,6 +26,7 @@
     let activeStampCount = 0
     let animationFrame = 0
     let initializationVersion = 0
+    let nextHue = 0
     let mounted = true
     const activeStamps = new Float32Array(MAX_STAMPS * STATE_FLOATS_PER_STAMP)
     const drawStamps = new Float32Array(MAX_STAMPS * DRAW_FLOATS_PER_STAMP)
@@ -57,6 +58,7 @@
         drawStamps[drawOffset + 1] = activeStamps[stateOffset + 1]
         drawStamps[drawOffset + 2] = activeStamps[stateOffset + 2]
         drawStamps[drawOffset + 3] = activeStamps[stateOffset + 3] * remainingOpacity
+        drawStamps[drawOffset + 4] = activeStamps[stateOffset + 5]
         nextActiveCount += 1
         drawCount += 1
       }
@@ -77,7 +79,9 @@
       activeStamps[offset + 2] = size
       activeStamps[offset + 3] = opacity
       activeStamps[offset + 4] = performance.now()
+      activeStamps[offset + 5] = nextHue
       activeStampCount += 1
+      nextHue = (nextHue + 0.012) % 1
 
       if (!animationFrame) animationFrame = requestAnimationFrame(drawFrame)
     }

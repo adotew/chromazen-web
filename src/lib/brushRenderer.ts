@@ -5,17 +5,19 @@ export type BrushRenderer = {
   resize: (width: number, height: number, pixelRatio: number) => void
 }
 
-const FLOATS_PER_STAMP = 4
+const FLOATS_PER_STAMP = 5
 
 const vertexShaderSource = `#version 300 es
 layout(location = 0) in vec2 a_position;
 layout(location = 1) in float a_size;
 layout(location = 2) in float a_opacity;
+layout(location = 3) in float a_hue;
 
 uniform vec2 u_viewport;
 
 out vec2 v_texture_coordinate;
 out float v_opacity;
+out float v_hue;
 
 const vec2 QUAD[6] = vec2[](
   vec2(-0.5, -0.5),
@@ -37,6 +39,7 @@ void main() {
   gl_Position = vec4(clip_position, 0.0, 1.0);
   v_texture_coordinate = corner + 0.5;
   v_opacity = a_opacity;
+  v_hue = a_hue;
 }
 `
 
@@ -47,7 +50,17 @@ uniform sampler2D u_brush;
 
 in vec2 v_texture_coordinate;
 in float v_opacity;
+in float v_hue;
 out vec4 out_color;
+
+vec3 rainbow(float hue) {
+  vec3 color = clamp(
+    abs(mod(hue * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0,
+    0.0,
+    1.0
+  );
+  return color * color * (3.0 - 2.0 * color);
+}
 
 void main() {
   float alpha = texture(u_brush, v_texture_coordinate).a * v_opacity;
@@ -55,7 +68,8 @@ void main() {
     discard;
   }
 
-  out_color = vec4(0.09, 0.085, 0.075, alpha);
+  vec3 color = mix(vec3(0.05), rainbow(v_hue), 0.85);
+  out_color = vec4(color, alpha);
 }
 `
 
@@ -163,6 +177,9 @@ export async function createBrushRenderer(
     gl.enableVertexAttribArray(2)
     gl.vertexAttribPointer(2, 1, gl.FLOAT, false, stride, 3 * Float32Array.BYTES_PER_ELEMENT)
     gl.vertexAttribDivisor(2, 1)
+    gl.enableVertexAttribArray(3)
+    gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, 4 * Float32Array.BYTES_PER_ELEMENT)
+    gl.vertexAttribDivisor(3, 1)
 
     gl.enable(gl.BLEND)
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
