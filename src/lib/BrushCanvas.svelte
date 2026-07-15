@@ -23,6 +23,7 @@
     let renderedPoint: StrokePoint | null = null
     let latestPoint: Point | null = null
     let smoothingPointerId: number | null = null
+    let activeTouchPointerId: number | null = null
     let smoothingTimeout = 0
     let activeStampCount = 0
     let animationFrame = 0
@@ -168,15 +169,29 @@
       renderSmoothedPoints(smoother.push(point))
     }
 
-    function handlePointerMove(event: PointerEvent) {
-      const events = event.getCoalescedEvents?.() ?? [event]
-      for (const pointerEvent of events) queuePoint(pointFromEvent(pointerEvent))
-
+    function scheduleSmoothingFlush() {
       if (smoothingTimeout) window.clearTimeout(smoothingTimeout)
       smoothingTimeout = window.setTimeout(() => flushSmoothing(true), SMOOTHING_IDLE_DELAY)
     }
 
+    function handlePointerDown(event: PointerEvent) {
+      if (event.pointerType !== 'touch' || !event.isPrimary) return
+
+      activeTouchPointerId = event.pointerId
+      queuePoint(pointFromEvent(event))
+      scheduleSmoothingFlush()
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      if (event.pointerType === 'touch' && event.pointerId !== activeTouchPointerId) return
+
+      const events = event.getCoalescedEvents?.() ?? [event]
+      for (const pointerEvent of events) queuePoint(pointFromEvent(pointerEvent))
+      scheduleSmoothingFlush()
+    }
+
     function handlePointerEnd(event: PointerEvent) {
+      if (event.pointerId === activeTouchPointerId) activeTouchPointerId = null
       if (smoothingPointerId === event.pointerId) flushSmoothing(false)
     }
 
@@ -219,6 +234,7 @@
       }
     }
 
+    window.addEventListener('pointerdown', handlePointerDown, { passive: true })
     window.addEventListener('pointermove', handlePointerMove, { passive: true })
     window.addEventListener('pointerup', handlePointerEnd, { passive: true })
     window.addEventListener('pointercancel', handlePointerEnd, { passive: true })
@@ -232,6 +248,7 @@
     return () => {
       mounted = false
       initializationVersion += 1
+      window.removeEventListener('pointerdown', handlePointerDown)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerEnd)
       window.removeEventListener('pointercancel', handlePointerEnd)

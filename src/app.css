@@ -48,6 +48,8 @@ main {
   min-height: 100svh;
   place-items: center;
   padding: 2rem;
+  /* Keep one-finger touches available to the brush while preserving pinch zoom. */
+  touch-action: pinch-zoom;
 }
 
 .intro {
