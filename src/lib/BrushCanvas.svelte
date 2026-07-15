@@ -3,7 +3,9 @@
   import { createBrushRenderer, type BrushRenderer } from './brushRenderer'
 
   const BRUSH_SIZE = 72
-  const FLOATS_PER_STAMP = 4
+  const DRAW_FLOATS_PER_STAMP = 4
+  const STATE_FLOATS_PER_STAMP = 5
+  const FADE_DURATION = 1200
   const MAX_STAMPS = 2048
 
   type Point = {
@@ -21,33 +23,63 @@
 
     let renderer: BrushRenderer | null = null
     let previousPoint: Point | null = null
-    let stampCount = 0
+    let activeStampCount = 0
     let animationFrame = 0
     let initializationVersion = 0
     let mounted = true
-    const stamps = new Float32Array(MAX_STAMPS * FLOATS_PER_STAMP)
+    const activeStamps = new Float32Array(MAX_STAMPS * STATE_FLOATS_PER_STAMP)
+    const drawStamps = new Float32Array(MAX_STAMPS * DRAW_FLOATS_PER_STAMP)
 
     function resize() {
       renderer?.resize(window.innerWidth, window.innerHeight, Math.min(window.devicePixelRatio, 2))
     }
 
-    function drawQueuedStamps() {
+    function drawFrame(timestamp: number) {
       animationFrame = 0
-      renderer?.draw(stamps, stampCount)
-      stampCount = 0
+      let nextActiveCount = 0
+      let drawCount = 0
+
+      for (let index = 0; index < activeStampCount; index += 1) {
+        const stateOffset = index * STATE_FLOATS_PER_STAMP
+        const age = timestamp - activeStamps[stateOffset + 4]
+        if (age >= FADE_DURATION) continue
+
+        const nextStateOffset = nextActiveCount * STATE_FLOATS_PER_STAMP
+        if (nextStateOffset !== stateOffset) {
+          for (let value = 0; value < STATE_FLOATS_PER_STAMP; value += 1) {
+            activeStamps[nextStateOffset + value] = activeStamps[stateOffset + value]
+          }
+        }
+
+        const drawOffset = drawCount * DRAW_FLOATS_PER_STAMP
+        const remainingOpacity = 1 - Math.max(0, age) / FADE_DURATION
+        drawStamps[drawOffset] = activeStamps[stateOffset]
+        drawStamps[drawOffset + 1] = activeStamps[stateOffset + 1]
+        drawStamps[drawOffset + 2] = activeStamps[stateOffset + 2]
+        drawStamps[drawOffset + 3] = activeStamps[stateOffset + 3] * remainingOpacity
+        nextActiveCount += 1
+        drawCount += 1
+      }
+
+      activeStampCount = nextActiveCount
+      renderer?.clear()
+      renderer?.draw(drawStamps, drawCount)
+
+      if (activeStampCount > 0) animationFrame = requestAnimationFrame(drawFrame)
     }
 
     function queueStamp(x: number, y: number, size: number, opacity: number) {
-      if (!renderer || stampCount >= MAX_STAMPS) return
+      if (!renderer || activeStampCount >= MAX_STAMPS) return
 
-      const offset = stampCount * FLOATS_PER_STAMP
-      stamps[offset] = x
-      stamps[offset + 1] = y
-      stamps[offset + 2] = size
-      stamps[offset + 3] = opacity
-      stampCount += 1
+      const offset = activeStampCount * STATE_FLOATS_PER_STAMP
+      activeStamps[offset] = x
+      activeStamps[offset + 1] = y
+      activeStamps[offset + 2] = size
+      activeStamps[offset + 3] = opacity
+      activeStamps[offset + 4] = performance.now()
+      activeStampCount += 1
 
-      if (!animationFrame) animationFrame = requestAnimationFrame(drawQueuedStamps)
+      if (!animationFrame) animationFrame = requestAnimationFrame(drawFrame)
     }
 
     function pointFromEvent(event: PointerEvent): Point {
@@ -103,7 +135,7 @@
       initializationVersion += 1
       renderer = null
       previousPoint = null
-      stampCount = 0
+      activeStampCount = 0
       if (animationFrame) cancelAnimationFrame(animationFrame)
       animationFrame = 0
     }
@@ -112,7 +144,8 @@
       if (!document.hidden) return
 
       previousPoint = null
-      stampCount = 0
+      activeStampCount = 0
+      renderer?.clear()
       if (animationFrame) cancelAnimationFrame(animationFrame)
       animationFrame = 0
     }

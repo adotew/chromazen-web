@@ -106,7 +106,7 @@ export async function createBrushRenderer(
   const gl = canvas.getContext('webgl2', {
     alpha: true,
     antialias: false,
-    preserveDrawingBuffer: true,
+    preserveDrawingBuffer: false,
   })
 
   if (!gl) return null
