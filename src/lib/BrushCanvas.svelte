@@ -1,18 +1,16 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { createBrushRenderer, type BrushRenderer } from './brushRenderer'
+  import { StrokeSmoother, type StrokePoint } from './strokeSmoothing'
 
   const BRUSH_SIZE = 112
   const DRAW_FLOATS_PER_STAMP = 5
   const STATE_FLOATS_PER_STAMP = 6
   const FADE_DURATION = 1200
+  const SMOOTHING_IDLE_DELAY = 50
   const MAX_STAMPS = 2048
 
-  type Point = {
-    x: number
-    y: number
-    size: number
-    opacity: number
+  type Point = StrokePoint & {
     pointerId: number
   }
 
@@ -22,12 +20,16 @@
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     let renderer: BrushRenderer | null = null
-    let previousPoint: Point | null = null
+    let renderedPoint: StrokePoint | null = null
+    let latestPoint: Point | null = null
+    let smoothingPointerId: number | null = null
+    let smoothingTimeout = 0
     let activeStampCount = 0
     let animationFrame = 0
     let initializationVersion = 0
     let nextHue = 0
     let mounted = true
+    const smoother = new StrokeSmoother()
     const activeStamps = new Float32Array(MAX_STAMPS * STATE_FLOATS_PER_STAMP)
     const drawStamps = new Float32Array(MAX_STAMPS * DRAW_FLOATS_PER_STAMP)
 
@@ -99,15 +101,15 @@
       }
     }
 
-    function queuePoint(point: Point) {
-      if (!previousPoint || previousPoint.pointerId !== point.pointerId) {
+    function renderSmoothedPoint(point: StrokePoint) {
+      if (!renderedPoint) {
         queueStamp(point.x, point.y, point.size, point.opacity)
-        previousPoint = point
+        renderedPoint = point
         return
       }
 
-      const dx = point.x - previousPoint.x
-      const dy = point.y - previousPoint.y
+      const dx = point.x - renderedPoint.x
+      const dy = point.y - renderedPoint.y
       const distance = Math.hypot(dx, dy)
       const spacing = Math.max(3, point.size * 0.12)
       const steps = Math.max(1, Math.ceil(distance / spacing))
@@ -115,30 +117,74 @@
       for (let step = 1; step <= steps; step += 1) {
         const progress = step / steps
         queueStamp(
-          previousPoint.x + dx * progress,
-          previousPoint.y + dy * progress,
-          previousPoint.size + (point.size - previousPoint.size) * progress,
-          previousPoint.opacity + (point.opacity - previousPoint.opacity) * progress,
+          renderedPoint.x + dx * progress,
+          renderedPoint.y + dy * progress,
+          renderedPoint.size + (point.size - renderedPoint.size) * progress,
+          renderedPoint.opacity + (point.opacity - renderedPoint.opacity) * progress,
         )
       }
 
-      previousPoint = point
+      renderedPoint = point
+    }
+
+    function renderSmoothedPoints(points: StrokePoint[]) {
+      for (const point of points) renderSmoothedPoint(point)
+    }
+
+    function flushSmoothing(restart: boolean) {
+      if (smoothingTimeout) window.clearTimeout(smoothingTimeout)
+      smoothingTimeout = 0
+      renderSmoothedPoints(smoother.finish())
+
+      if (restart && latestPoint) {
+        smoother.begin(latestPoint)
+      } else {
+        latestPoint = null
+        smoothingPointerId = null
+        renderedPoint = null
+      }
+    }
+
+    function resetSmoothing() {
+      if (smoothingTimeout) window.clearTimeout(smoothingTimeout)
+      smoothingTimeout = 0
+      smoother.reset()
+      latestPoint = null
+      smoothingPointerId = null
+      renderedPoint = null
+    }
+
+    function queuePoint(point: Point) {
+      if (smoothingPointerId !== point.pointerId) {
+        if (smoothingPointerId !== null) flushSmoothing(false)
+        smoothingPointerId = point.pointerId
+        latestPoint = point
+        smoother.begin(point)
+        renderSmoothedPoint(point)
+        return
+      }
+
+      latestPoint = point
+      renderSmoothedPoints(smoother.push(point))
     }
 
     function handlePointerMove(event: PointerEvent) {
       const events = event.getCoalescedEvents?.() ?? [event]
       for (const pointerEvent of events) queuePoint(pointFromEvent(pointerEvent))
+
+      if (smoothingTimeout) window.clearTimeout(smoothingTimeout)
+      smoothingTimeout = window.setTimeout(() => flushSmoothing(true), SMOOTHING_IDLE_DELAY)
     }
 
     function handlePointerEnd(event: PointerEvent) {
-      if (previousPoint?.pointerId === event.pointerId) previousPoint = null
+      if (smoothingPointerId === event.pointerId) flushSmoothing(false)
     }
 
     function handleContextLost(event: Event) {
       event.preventDefault()
       initializationVersion += 1
       renderer = null
-      previousPoint = null
+      resetSmoothing()
       activeStampCount = 0
       if (animationFrame) cancelAnimationFrame(animationFrame)
       animationFrame = 0
@@ -147,7 +193,7 @@
     function handleVisibilityChange() {
       if (!document.hidden) return
 
-      previousPoint = null
+      resetSmoothing()
       activeStampCount = 0
       renderer?.clear()
       if (animationFrame) cancelAnimationFrame(animationFrame)
@@ -193,6 +239,7 @@
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       canvas.removeEventListener('webglcontextlost', handleContextLost)
       canvas.removeEventListener('webglcontextrestored', initializeRenderer)
+      resetSmoothing()
       if (animationFrame) cancelAnimationFrame(animationFrame)
       renderer?.destroy()
     }
