@@ -1,5 +1,5 @@
 <script lang="ts">
-  const repositoryUrl = 'https://github.com/adotew/minipaint-rs'
+  const repositoryUrl = 'https://github.com/adotew/chromazen'
 </script>
 
 <svelte:head>

@@ -1,6 +1,6 @@
 # Chromazen Web
 
-Minimal landing page for [Chromazen](https://github.com/adotew/minipaint-rs), built with Svelte 5, TypeScript, Vite, and WebGL2.
+Minimal landing page for [Chromazen](https://github.com/adotew/chromazen), built with Svelte 5, TypeScript, Vite, and WebGL2.
 
 ## Development
 
