@@ -1,4 +1,6 @@
 <script lang="ts">
+  import BrushCanvas from './lib/BrushCanvas.svelte'
+
   const repositoryUrl = 'https://github.com/adotew/chromazen'
 </script>
 
@@ -9,6 +11,8 @@
     content="Chromazen is a minimal native painting application focused on brush performance."
   />
 </svelte:head>
+
+<BrushCanvas />
 
 <main>
   <div class="intro">
