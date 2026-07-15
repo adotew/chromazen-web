@@ -81,6 +81,28 @@ a:hover {
   text-decoration-thickness: 2px;
 }
 
+.github-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.5rem;
+  color: var(--color-background);
+  background: var(--color-foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.github-button:hover {
+  opacity: 0.85;
+}
+
+.github-button svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: currentColor;
+}
+
 a:focus-visible {
   border-radius: 2px;
   outline: 2px solid currentColor;
