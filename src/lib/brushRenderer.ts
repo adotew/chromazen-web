@@ -13,18 +13,29 @@ layout(location = 1) in float a_size;
 layout(location = 2) in float a_opacity;
 
 uniform vec2 u_viewport;
-uniform float u_pixel_ratio;
 
+out vec2 v_texture_coordinate;
 out float v_opacity;
 
+const vec2 QUAD[6] = vec2[](
+  vec2(-0.5, -0.5),
+  vec2(0.5, -0.5),
+  vec2(-0.5, 0.5),
+  vec2(-0.5, 0.5),
+  vec2(0.5, -0.5),
+  vec2(0.5, 0.5)
+);
+
 void main() {
+  vec2 corner = QUAD[gl_VertexID];
+  vec2 position = a_position + corner * a_size;
   vec2 clip_position = vec2(
-    (a_position.x / u_viewport.x) * 2.0 - 1.0,
-    1.0 - (a_position.y / u_viewport.y) * 2.0
+    (position.x / u_viewport.x) * 2.0 - 1.0,
+    1.0 - (position.y / u_viewport.y) * 2.0
   );
 
   gl_Position = vec4(clip_position, 0.0, 1.0);
-  gl_PointSize = a_size * u_pixel_ratio;
+  v_texture_coordinate = corner + 0.5;
   v_opacity = a_opacity;
 }
 `
@@ -34,11 +45,12 @@ precision mediump float;
 
 uniform sampler2D u_brush;
 
+in vec2 v_texture_coordinate;
 in float v_opacity;
 out vec4 out_color;
 
 void main() {
-  float alpha = texture(u_brush, gl_PointCoord).a * v_opacity;
+  float alpha = texture(u_brush, v_texture_coordinate).a * v_opacity;
   if (alpha < 0.01) {
     discard;
   }
@@ -117,16 +129,8 @@ export async function createBrushRenderer(
   const vertexArray = gl.createVertexArray()
   const brushLocation = gl.getUniformLocation(program, 'u_brush')
   const viewportLocation = gl.getUniformLocation(program, 'u_viewport')
-  const pixelRatioLocation = gl.getUniformLocation(program, 'u_pixel_ratio')
 
-  if (
-    !buffer ||
-    !texture ||
-    !vertexArray ||
-    !brushLocation ||
-    !viewportLocation ||
-    !pixelRatioLocation
-  ) {
+  if (!buffer || !texture || !vertexArray || !brushLocation || !viewportLocation) {
     gl.deleteBuffer(buffer)
     gl.deleteTexture(texture)
     gl.deleteVertexArray(vertexArray)
@@ -152,10 +156,13 @@ export async function createBrushRenderer(
     const stride = FLOATS_PER_STAMP * Float32Array.BYTES_PER_ELEMENT
     gl.enableVertexAttribArray(0)
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0)
+    gl.vertexAttribDivisor(0, 1)
     gl.enableVertexAttribArray(1)
     gl.vertexAttribPointer(1, 1, gl.FLOAT, false, stride, 2 * Float32Array.BYTES_PER_ELEMENT)
+    gl.vertexAttribDivisor(1, 1)
     gl.enableVertexAttribArray(2)
     gl.vertexAttribPointer(2, 1, gl.FLOAT, false, stride, 3 * Float32Array.BYTES_PER_ELEMENT)
+    gl.vertexAttribDivisor(2, 1)
 
     gl.enable(gl.BLEND)
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
@@ -189,7 +196,6 @@ export async function createBrushRenderer(
 
       gl.useProgram(program)
       gl.uniform2f(viewportLocation, width, height)
-      gl.uniform1f(pixelRatioLocation, pixelRatio)
       gl.activeTexture(gl.TEXTURE0)
       gl.bindTexture(gl.TEXTURE_2D, texture)
       gl.bindVertexArray(vertexArray)
@@ -199,7 +205,7 @@ export async function createBrushRenderer(
         stamps.subarray(0, count * FLOATS_PER_STAMP),
         gl.DYNAMIC_DRAW,
       )
-      gl.drawArrays(gl.POINTS, 0, count)
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count)
     },
 
     resize(nextWidth, nextHeight, nextPixelRatio) {

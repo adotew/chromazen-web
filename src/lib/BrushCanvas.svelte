@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import { createBrushRenderer, type BrushRenderer } from './brushRenderer'
 
-  const BRUSH_SIZE = 72
+  const BRUSH_SIZE = 112
   const DRAW_FLOATS_PER_STAMP = 4
   const STATE_FLOATS_PER_STAMP = 5
   const FADE_DURATION = 1200
