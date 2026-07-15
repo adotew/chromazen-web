@@ -83,7 +83,7 @@
       activeStamps[offset + 4] = performance.now()
       activeStamps[offset + 5] = nextHue
       activeStampCount += 1
-      nextHue = (nextHue + 0.003) % 1
+      nextHue = (nextHue + 0.0005) % 1
 
       if (!animationFrame) animationFrame = requestAnimationFrame(drawFrame)
     }
