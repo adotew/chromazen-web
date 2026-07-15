@@ -68,7 +68,10 @@ void main() {
     discard;
   }
 
-  vec3 color = mix(vec3(0.05), rainbow(v_hue), 0.85);
+  vec3 rainbow_color = rainbow(v_hue);
+  float luminance = dot(rainbow_color, vec3(0.299, 0.587, 0.114));
+  vec3 muted_color = mix(vec3(luminance), rainbow_color, 0.6);
+  vec3 color = mix(vec3(0.05), muted_color, 0.85);
   out_color = vec4(color, alpha);
 }
 `
