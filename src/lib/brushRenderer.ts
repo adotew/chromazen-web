@@ -114,12 +114,22 @@ export async function createBrushRenderer(
   const program = createProgram(gl)
   const buffer = gl.createBuffer()
   const texture = gl.createTexture()
+  const vertexArray = gl.createVertexArray()
+  const brushLocation = gl.getUniformLocation(program, 'u_brush')
   const viewportLocation = gl.getUniformLocation(program, 'u_viewport')
   const pixelRatioLocation = gl.getUniformLocation(program, 'u_pixel_ratio')
 
-  if (!buffer || !texture || !viewportLocation || !pixelRatioLocation) {
+  if (
+    !buffer ||
+    !texture ||
+    !vertexArray ||
+    !brushLocation ||
+    !viewportLocation ||
+    !pixelRatioLocation
+  ) {
     gl.deleteBuffer(buffer)
     gl.deleteTexture(texture)
+    gl.deleteVertexArray(vertexArray)
     gl.deleteProgram(program)
     throw new Error('Unable to create WebGL brush resources')
   }
@@ -135,7 +145,8 @@ export async function createBrushRenderer(
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
 
     gl.useProgram(program)
-    gl.uniform1i(gl.getUniformLocation(program, 'u_brush'), 0)
+    gl.uniform1i(brushLocation, 0)
+    gl.bindVertexArray(vertexArray)
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
 
     const stride = FLOATS_PER_STAMP * Float32Array.BYTES_PER_ELEMENT
@@ -152,6 +163,7 @@ export async function createBrushRenderer(
   } catch (error) {
     gl.deleteBuffer(buffer)
     gl.deleteTexture(texture)
+    gl.deleteVertexArray(vertexArray)
     gl.deleteProgram(program)
     throw error
   }
@@ -168,6 +180,7 @@ export async function createBrushRenderer(
     destroy() {
       gl.deleteBuffer(buffer)
       gl.deleteTexture(texture)
+      gl.deleteVertexArray(vertexArray)
       gl.deleteProgram(program)
     },
 
@@ -179,6 +192,7 @@ export async function createBrushRenderer(
       gl.uniform1f(pixelRatioLocation, pixelRatio)
       gl.activeTexture(gl.TEXTURE0)
       gl.bindTexture(gl.TEXTURE_2D, texture)
+      gl.bindVertexArray(vertexArray)
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
       gl.bufferData(
         gl.ARRAY_BUFFER,

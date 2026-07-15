@@ -17,10 +17,13 @@
   let canvas: HTMLCanvasElement
 
   onMount(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
     let renderer: BrushRenderer | null = null
     let previousPoint: Point | null = null
     let stampCount = 0
     let animationFrame = 0
+    let initializationVersion = 0
     let mounted = true
     const stamps = new Float32Array(MAX_STAMPS * FLOATS_PER_STAMP)
 
@@ -95,31 +98,64 @@
       if (previousPoint?.pointerId === event.pointerId) previousPoint = null
     }
 
-    window.addEventListener('pointermove', handlePointerMove, { passive: true })
-    window.addEventListener('pointerup', handlePointerEnd, { passive: true })
-    window.addEventListener('pointercancel', handlePointerEnd, { passive: true })
-    window.addEventListener('resize', resize, { passive: true })
+    function handleContextLost(event: Event) {
+      event.preventDefault()
+      initializationVersion += 1
+      renderer = null
+      previousPoint = null
+      stampCount = 0
+      if (animationFrame) cancelAnimationFrame(animationFrame)
+      animationFrame = 0
+    }
 
-    void createBrushRenderer(canvas, '/charcoal.png')
-      .then((createdRenderer) => {
-        if (!mounted) {
+    function handleVisibilityChange() {
+      if (!document.hidden) return
+
+      previousPoint = null
+      stampCount = 0
+      if (animationFrame) cancelAnimationFrame(animationFrame)
+      animationFrame = 0
+    }
+
+    async function initializeRenderer() {
+      const version = ++initializationVersion
+
+      try {
+        const createdRenderer = await createBrushRenderer(canvas, '/charcoal.png')
+        if (!mounted || version !== initializationVersion) {
           createdRenderer?.destroy()
           return
         }
 
         renderer = createdRenderer
         resize()
-      })
-      .catch((error: unknown) => {
-        console.warn('The brush effect could not be initialized.', error)
-      })
+      } catch (error: unknown) {
+        if (mounted && version === initializationVersion) {
+          console.warn('The brush effect could not be initialized.', error)
+        }
+      }
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
+    window.addEventListener('pointerup', handlePointerEnd, { passive: true })
+    window.addEventListener('pointercancel', handlePointerEnd, { passive: true })
+    window.addEventListener('resize', resize, { passive: true })
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    canvas.addEventListener('webglcontextlost', handleContextLost)
+    canvas.addEventListener('webglcontextrestored', initializeRenderer)
+
+    void initializeRenderer()
 
     return () => {
       mounted = false
+      initializationVersion += 1
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerEnd)
       window.removeEventListener('pointercancel', handlePointerEnd)
       window.removeEventListener('resize', resize)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      canvas.removeEventListener('webglcontextlost', handleContextLost)
+      canvas.removeEventListener('webglcontextrestored', initializeRenderer)
       if (animationFrame) cancelAnimationFrame(animationFrame)
       renderer?.destroy()
     }
