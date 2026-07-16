@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-  <title>Chromazen</title>
+  <title>Chromazen — Minimal Native Painting App</title>
   <meta
     name="description"
     content="Chromazen is a minimal native painting application focused on brush performance."
