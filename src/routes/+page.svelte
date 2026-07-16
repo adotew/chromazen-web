@@ -1,5 +1,5 @@
 <script lang="ts">
-  import BrushCanvas from './lib/BrushCanvas.svelte'
+  import BrushCanvas from '$lib/BrushCanvas.svelte'
 
   const repositoryUrl = 'https://github.com/adotew/chromazen'
 </script>
