@@ -17,7 +17,7 @@
 <main>
   <div class="intro">
     <h1>Chromazen</h1>
-    <p>A minimal native painting application focused on brush performance.</p>
+    <p>A lightweight, distraction-free painting application focused on performance.</p>
     <a class="github-button" href={repositoryUrl} target="_blank" rel="noreferrer">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
