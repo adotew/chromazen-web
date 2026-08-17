@@ -17,7 +17,7 @@
 
 <main>
   <div class="intro">
-    <img class="app-icon" src="/app-icon-source.png" alt="" width="3840" height="3788" />
+    <img class="app-icon" src="/app-icon-source.png" alt="" width="512" height="505" />
     <h1>Chromazen</h1>
     <p>A lightweight, distraction-free painting application focused on performance.</p>
     <a class="github-button" href={repositoryUrl} target="_blank" rel="noreferrer">

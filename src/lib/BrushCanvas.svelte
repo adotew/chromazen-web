@@ -59,7 +59,7 @@
         const remainingOpacity = 1 - Math.max(0, age) / FADE_DURATION
         drawStamps[drawOffset] = activeStamps[stateOffset]
         drawStamps[drawOffset + 1] = activeStamps[stateOffset + 1]
-        drawStamps[drawOffset + 2] = activeStamps[stateOffset + 2]
+        drawStamps[drawOffset + 2] = activeStamps[stateOffset + 2] * remainingOpacity ** 0.25
         drawStamps[drawOffset + 3] = activeStamps[stateOffset + 3] * remainingOpacity
         drawStamps[drawOffset + 4] = activeStamps[stateOffset + 5]
         nextActiveCount += 1

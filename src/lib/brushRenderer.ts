@@ -1,11 +1,11 @@
 export type BrushRenderer = {
-  clear: () => void
-  destroy: () => void
-  draw: (stamps: Float32Array, count: number) => void
-  resize: (width: number, height: number, pixelRatio: number) => void
-}
+  clear: () => void;
+  destroy: () => void;
+  draw: (stamps: Float32Array, count: number) => void;
+  resize: (width: number, height: number, pixelRatio: number) => void;
+};
 
-const FLOATS_PER_STAMP = 5
+const FLOATS_PER_STAMP = 5;
 
 const vertexShaderSource = `#version 300 es
 layout(location = 0) in vec2 a_position;
@@ -41,7 +41,7 @@ void main() {
   v_opacity = a_opacity;
   v_hue = a_hue;
 }
-`
+`;
 
 const fragmentShaderSource = `#version 300 es
 precision mediump float;
@@ -53,13 +53,21 @@ in float v_opacity;
 in float v_hue;
 out vec4 out_color;
 
-vec3 rainbow(float hue) {
-  vec3 color = clamp(
-    abs(mod(hue * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0,
-    0.0,
-    1.0
-  );
-  return color * color * (3.0 - 2.0 * color);
+vec3 logoPalette(float position) {
+  float segment = fract(position) * 6.0;
+  vec3 blue = vec3(0.50, 0.72, 1.00);
+  vec3 purple = vec3(0.74, 0.60, 0.96);
+  vec3 pink = vec3(0.92, 0.67, 0.84);
+  vec3 peach = vec3(0.88, 0.73, 0.61);
+  vec3 green = vec3(0.62, 0.97, 0.58);
+  vec3 cyan = vec3(0.55, 0.85, 0.96);
+
+  if (segment < 1.0) return mix(blue, purple, segment);
+  if (segment < 2.0) return mix(purple, pink, segment - 1.0);
+  if (segment < 3.0) return mix(pink, peach, segment - 2.0);
+  if (segment < 4.0) return mix(peach, green, segment - 3.0);
+  if (segment < 5.0) return mix(green, cyan, segment - 4.0);
+  return mix(cyan, blue, segment - 5.0);
 }
 
 void main() {
@@ -68,175 +76,214 @@ void main() {
     discard;
   }
 
-  vec3 rainbow_color = rainbow(v_hue);
-  float luminance = dot(rainbow_color, vec3(0.299, 0.587, 0.114));
-  vec3 muted_color = mix(vec3(luminance), rainbow_color, 0.6);
-  vec3 color = mix(vec3(0.05), muted_color, 0.85);
-  out_color = vec4(color, alpha);
+  out_color = vec4(logoPalette(v_hue), alpha);
 }
-`
+`;
 
-function compileShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
-  const shader = gl.createShader(type)
-  if (!shader) throw new Error('Unable to create WebGL shader')
+function compileShader(
+  gl: WebGL2RenderingContext,
+  type: number,
+  source: string,
+): WebGLShader {
+  const shader = gl.createShader(type);
+  if (!shader) throw new Error("Unable to create WebGL shader");
 
-  gl.shaderSource(shader, source)
-  gl.compileShader(shader)
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const message = gl.getShaderInfoLog(shader) ?? 'Unknown shader compilation error'
-    gl.deleteShader(shader)
-    throw new Error(message)
+    const message =
+      gl.getShaderInfoLog(shader) ?? "Unknown shader compilation error";
+    gl.deleteShader(shader);
+    throw new Error(message);
   }
 
-  return shader
+  return shader;
 }
 
 function createProgram(gl: WebGL2RenderingContext): WebGLProgram {
-  const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource)
-  const fragmentShader = compileShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
-  const program = gl.createProgram()
+  const vertexShader = compileShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+  const fragmentShader = compileShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    fragmentShaderSource,
+  );
+  const program = gl.createProgram();
 
   if (!program) {
-    gl.deleteShader(vertexShader)
-    gl.deleteShader(fragmentShader)
-    throw new Error('Unable to create WebGL program')
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
+    throw new Error("Unable to create WebGL program");
   }
 
-  gl.attachShader(program, vertexShader)
-  gl.attachShader(program, fragmentShader)
-  gl.linkProgram(program)
-  gl.deleteShader(vertexShader)
-  gl.deleteShader(fragmentShader)
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  gl.deleteShader(vertexShader);
+  gl.deleteShader(fragmentShader);
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const message = gl.getProgramInfoLog(program) ?? 'Unknown WebGL program link error'
-    gl.deleteProgram(program)
-    throw new Error(message)
+    const message =
+      gl.getProgramInfoLog(program) ?? "Unknown WebGL program link error";
+    gl.deleteProgram(program);
+    throw new Error(message);
   }
 
-  return program
+  return program;
 }
 
 function loadImage(source: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.decoding = 'async'
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error(`Unable to load brush texture: ${source}`))
-    image.src = source
-  })
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => resolve(image);
+    image.onerror = () =>
+      reject(new Error(`Unable to load brush texture: ${source}`));
+    image.src = source;
+  });
 }
 
 export async function createBrushRenderer(
   canvas: HTMLCanvasElement,
   textureSource: string,
 ): Promise<BrushRenderer | null> {
-  const gl = canvas.getContext('webgl2', {
+  const gl = canvas.getContext("webgl2", {
     alpha: true,
     antialias: false,
     preserveDrawingBuffer: false,
-  })
+  });
 
-  if (!gl) return null
+  if (!gl) return null;
 
-  const program = createProgram(gl)
-  const buffer = gl.createBuffer()
-  const texture = gl.createTexture()
-  const vertexArray = gl.createVertexArray()
-  const brushLocation = gl.getUniformLocation(program, 'u_brush')
-  const viewportLocation = gl.getUniformLocation(program, 'u_viewport')
+  const program = createProgram(gl);
+  const buffer = gl.createBuffer();
+  const texture = gl.createTexture();
+  const vertexArray = gl.createVertexArray();
+  const brushLocation = gl.getUniformLocation(program, "u_brush");
+  const viewportLocation = gl.getUniformLocation(program, "u_viewport");
 
-  if (!buffer || !texture || !vertexArray || !brushLocation || !viewportLocation) {
-    gl.deleteBuffer(buffer)
-    gl.deleteTexture(texture)
-    gl.deleteVertexArray(vertexArray)
-    gl.deleteProgram(program)
-    throw new Error('Unable to create WebGL brush resources')
+  if (
+    !buffer ||
+    !texture ||
+    !vertexArray ||
+    !brushLocation ||
+    !viewportLocation
+  ) {
+    gl.deleteBuffer(buffer);
+    gl.deleteTexture(texture);
+    gl.deleteVertexArray(vertexArray);
+    gl.deleteProgram(program);
+    throw new Error("Unable to create WebGL brush resources");
   }
 
   try {
-    const image = await loadImage(textureSource)
+    const image = await loadImage(textureSource);
 
-    gl.bindTexture(gl.TEXTURE_2D, texture)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
-    gl.useProgram(program)
-    gl.uniform1i(brushLocation, 0)
-    gl.bindVertexArray(vertexArray)
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.useProgram(program);
+    gl.uniform1i(brushLocation, 0);
+    gl.bindVertexArray(vertexArray);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-    const stride = FLOATS_PER_STAMP * Float32Array.BYTES_PER_ELEMENT
-    gl.enableVertexAttribArray(0)
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0)
-    gl.vertexAttribDivisor(0, 1)
-    gl.enableVertexAttribArray(1)
-    gl.vertexAttribPointer(1, 1, gl.FLOAT, false, stride, 2 * Float32Array.BYTES_PER_ELEMENT)
-    gl.vertexAttribDivisor(1, 1)
-    gl.enableVertexAttribArray(2)
-    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, stride, 3 * Float32Array.BYTES_PER_ELEMENT)
-    gl.vertexAttribDivisor(2, 1)
-    gl.enableVertexAttribArray(3)
-    gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, 4 * Float32Array.BYTES_PER_ELEMENT)
-    gl.vertexAttribDivisor(3, 1)
+    const stride = FLOATS_PER_STAMP * Float32Array.BYTES_PER_ELEMENT;
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0);
+    gl.vertexAttribDivisor(0, 1);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(
+      1,
+      1,
+      gl.FLOAT,
+      false,
+      stride,
+      2 * Float32Array.BYTES_PER_ELEMENT,
+    );
+    gl.vertexAttribDivisor(1, 1);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(
+      2,
+      1,
+      gl.FLOAT,
+      false,
+      stride,
+      3 * Float32Array.BYTES_PER_ELEMENT,
+    );
+    gl.vertexAttribDivisor(2, 1);
+    gl.enableVertexAttribArray(3);
+    gl.vertexAttribPointer(
+      3,
+      1,
+      gl.FLOAT,
+      false,
+      stride,
+      4 * Float32Array.BYTES_PER_ELEMENT,
+    );
+    gl.vertexAttribDivisor(3, 1);
 
-    gl.enable(gl.BLEND)
-    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
-    gl.clearColor(0, 0, 0, 0)
+    gl.enable(gl.BLEND);
+    gl.blendFuncSeparate(
+      gl.SRC_ALPHA,
+      gl.ONE_MINUS_SRC_ALPHA,
+      gl.ONE,
+      gl.ONE_MINUS_SRC_ALPHA,
+    );
+    gl.clearColor(0, 0, 0, 0);
   } catch (error) {
-    gl.deleteBuffer(buffer)
-    gl.deleteTexture(texture)
-    gl.deleteVertexArray(vertexArray)
-    gl.deleteProgram(program)
-    throw error
+    gl.deleteBuffer(buffer);
+    gl.deleteTexture(texture);
+    gl.deleteVertexArray(vertexArray);
+    gl.deleteProgram(program);
+    throw error;
   }
 
-  let width = 1
-  let height = 1
-  let pixelRatio = 1
+  let width = 1;
+  let height = 1;
+  let pixelRatio = 1;
 
   return {
     clear() {
-      gl.clear(gl.COLOR_BUFFER_BIT)
+      gl.clear(gl.COLOR_BUFFER_BIT);
     },
 
     destroy() {
-      gl.deleteBuffer(buffer)
-      gl.deleteTexture(texture)
-      gl.deleteVertexArray(vertexArray)
-      gl.deleteProgram(program)
+      gl.deleteBuffer(buffer);
+      gl.deleteTexture(texture);
+      gl.deleteVertexArray(vertexArray);
+      gl.deleteProgram(program);
     },
 
     draw(stamps, count) {
-      if (count <= 0) return
+      if (count <= 0) return;
 
-      gl.useProgram(program)
-      gl.uniform2f(viewportLocation, width, height)
-      gl.activeTexture(gl.TEXTURE0)
-      gl.bindTexture(gl.TEXTURE_2D, texture)
-      gl.bindVertexArray(vertexArray)
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+      gl.useProgram(program);
+      gl.uniform2f(viewportLocation, width, height);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.bindVertexArray(vertexArray);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
       gl.bufferData(
         gl.ARRAY_BUFFER,
         stamps.subarray(0, count * FLOATS_PER_STAMP),
         gl.DYNAMIC_DRAW,
-      )
-      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count)
+      );
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
     },
 
     resize(nextWidth, nextHeight, nextPixelRatio) {
-      width = Math.max(1, nextWidth)
-      height = Math.max(1, nextHeight)
-      pixelRatio = Math.max(1, nextPixelRatio)
+      width = Math.max(1, nextWidth);
+      height = Math.max(1, nextHeight);
+      pixelRatio = Math.max(1, nextPixelRatio);
 
-      canvas.width = Math.round(width * pixelRatio)
-      canvas.height = Math.round(height * pixelRatio)
-      gl.viewport(0, 0, canvas.width, canvas.height)
-      gl.clear(gl.COLOR_BUFFER_BIT)
+      canvas.width = Math.round(width * pixelRatio);
+      canvas.height = Math.round(height * pixelRatio);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clear(gl.COLOR_BUFFER_BIT);
     },
-  }
+  };
 }
