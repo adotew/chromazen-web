@@ -41,6 +41,7 @@ body,
 
 body {
   min-height: 100svh;
+  cursor: crosshair;
 }
 
 button,
@@ -92,6 +93,7 @@ p {
 
 a {
   color: inherit;
+  cursor: pointer;
   text-underline-offset: 0.25em;
 }
 
