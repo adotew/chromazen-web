@@ -6,6 +6,7 @@
 
 <svelte:head>
   <title>Chromazen — Minimal Native Painting App</title>
+  <link rel="icon" href="/app-icon-source.png" />
   <meta
     name="description"
     content="Chromazen is a minimal native painting application focused on brush performance."
@@ -16,6 +17,7 @@
 
 <main>
   <div class="intro">
+    <img class="app-icon" src="/app-icon-source.png" alt="" width="3840" height="3788" />
     <h1>Chromazen</h1>
     <p>A lightweight, distraction-free painting application focused on performance.</p>
     <a class="github-button" href={repositoryUrl} target="_blank" rel="noreferrer">

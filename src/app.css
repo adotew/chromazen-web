@@ -1,3 +1,10 @@
+@font-face {
+  font-family: "Elms Sans";
+  src: url("/ElmsSans-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+
 :root {
   --color-background: #f1efe8;
   --color-foreground: #171714;
@@ -59,8 +66,17 @@ main {
   text-align: center;
 }
 
+.app-icon {
+  width: clamp(6rem, 18vw, 9rem);
+  height: auto;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 0 1px rgb(23 23 20 / 0.7))
+    drop-shadow(0 3px 8px rgb(23 23 20 / 0.2));
+}
+
 h1 {
   margin: 0;
+  font-family: "Elms Sans", sans-serif;
   font-size: clamp(3.5rem, 12vw, 8rem);
   font-weight: 500;
   letter-spacing: -0.075em;
