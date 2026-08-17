@@ -102,13 +102,12 @@ a:hover {
 }
 
 .github-button {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.65rem 0.9rem;
-  border-radius: 0.5rem;
-  color: var(--color-background);
-  background: var(--color-foreground);
   font-weight: 600;
   text-decoration: none;
 }
