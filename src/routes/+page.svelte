@@ -7,7 +7,7 @@
 
 <svelte:head>
   <title>Chromazen — Minimal Native Painting App</title>
-  <link rel="icon" href="/app-icon-source.png" />
+  <link rel="icon" href="/favicon.png" />
   <meta
     name="description"
     content="Chromazen is a minimal native painting application focused on brush performance."
@@ -18,12 +18,12 @@
 
 <main>
   <div class="intro">
-    <img class="app-icon" src="/app-icon-source.png" alt="" width="512" height="505" />
-    <h1>Chromazen</h1>
+    <img class="app-icon" src="/app-icon-source.png" alt="" width="1024" height="1024" />
+    <h1><span>Chroma</span><span class="title-bold">zen</span></h1>
     <p>A lightweight, distraction-free painting application focused on performance.</p>
     <div class="download-buttons">
       <a class="download-button" href={`${latestDownloadUrl}/Chromazen.dmg`}>
-        <svg viewBox="0 0 384 512" aria-hidden="true">
+        <svg class="apple-icon" viewBox="0 0 384 512" aria-hidden="true">
           <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.5 4 272.8c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.7-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.6-91.2zM260.2 104.5c27.3-32.4 24.8-61.9 24-72.5-24.7 1.4-53.4 16.8-69.2 34.6-17.4 19.8-27.8 44.3-25.6 71.9 26.7 2.1 51.3-11.7 70.8-34z" />
         </svg>
         macOS

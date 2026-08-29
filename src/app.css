@@ -1,7 +1,16 @@
 @font-face {
   font-family: "Elms Sans";
-  src: url("/ElmsSans-Medium.ttf") format("truetype");
-  font-weight: 500;
+  src: url("/ElmsSans-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Elms Sans";
+  src: url("/ElmsSans-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -78,10 +87,15 @@ main {
 h1 {
   margin: 0;
   font-family: "Elms Sans", sans-serif;
-  font-size: clamp(3.5rem, 12vw, 8rem);
-  font-weight: 500;
-  letter-spacing: -0.075em;
+  font-size: clamp(3.5rem, 12vw, 7rem);
+  font-weight: 300;
+  letter-spacing: -0.04em;
   line-height: 0.9;
+  transform: translateX(-0.36em);
+}
+
+.title-bold {
+  font-weight: 700;
 }
 
 p {
@@ -127,6 +141,11 @@ a:hover {
   fill: currentColor;
 }
 
+.download-button .apple-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
 .github-button {
   position: fixed;
   top: 2rem;
@@ -143,8 +162,8 @@ a:hover {
 }
 
 .github-button svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.6rem;
+  height: 1.6rem;
   fill: currentColor;
 }
 
